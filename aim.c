@@ -401,11 +401,9 @@ int main(int argc, char *argv[])
     si = XDefaultScreen(d);
 
     //xdo
-    xdo = xdo_new(":0");
+    xdo = xdo_new_with_opened_display(d, (char*)NULL, 0);
     if(minimal > 0)
     {
-        xdo_t* xdo;
-        xdo = xdo_new_with_opened_display(d, NULL, 0);
         xdo_get_active_window(xdo, &this_win);
         xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V1");
         xdo_set_window_size(xdo, this_win, 600, 1, 0);
