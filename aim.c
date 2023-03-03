@@ -27,7 +27,7 @@
 
 // user configurable (if you really want to)
 #define SCAN_DELAY 1000
-int sx=50, sy=50;
+const int sx=50, sy=50;
 
 // other
 #define uint unsigned int
