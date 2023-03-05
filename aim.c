@@ -289,7 +289,6 @@ void targetEnemy()
         static uint64_t lt = 0;
         if((mx != 0 || my != 0) && microtime()-lt > MOUSE_UPDATE_NS) // limited to 60hz updates
         {
-            mouse_scaler = 1;
             xdo_move_mouse_relative(xdo, mx*mouse_scaler, my*mouse_scaler);
             lt = microtime();
         }
