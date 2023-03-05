@@ -3,11 +3,17 @@
     James William Fletcher (github.com/mrbid)
 --------------------------------------------------
         MARCH 2023
-        ~~~~~~~~~~~~~
+        ~~~~~~~~~~
 
     This is for Quake Champions.
     - Set enemy outline to "ON" and outline color to red.
     - Make sure anti-aliasing is OFF in VIDEO settings.
+    - Set mouse sensitivity to 1 with 0 acceleration. (you can adjust from here for fine tuning)
+
+    With mouse sensitivity I usually have my gaming mouse on the highest DPI
+    so a slow sensivitity of 1 is not really an issue for me. If you do not have
+    a high DPS mouse and wish to play with a higher sensitivity you can try to
+    reduce the "mouse_scaler" value.
     
     Prereq:
     sudo apt install clang xterm libx11-dev libxdo-dev
@@ -25,9 +31,12 @@
 #include <X11/Xutil.h>
 #include <xdo.h>
 
-// user configurable (if you really want to)
-#define SCAN_DELAY 1000
-const int sx=50, sy=50;
+// user configurable
+//#define COLOR_DETECT cr > 220 && cg < 60 && cb < 60 // this will be for when the PTS goes live
+#define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
+#define SCAN_DELAY_NS 1000
+#define MOUSE_UPDATE_NS 16000
+const int mouse_scaler = 2;
 
 // other
 #define uint unsigned int
@@ -36,14 +45,16 @@ Display *d;
 int si;
 Window twin;
 Window this_win = 0;
-uint sps = 0;
 int cx=0, cy=0;
-uint64_t attack = 0;
 uint minimal = 0;
 uint enable = 0;
 uint crosshair = 1;
 uint hotkeys = 1;
 uint autoshoot = 1;
+uint sps = 0;
+uint64_t attack = 0;
+int sd=100;
+int sd2=200;
 
 /***************************************************
    ~~ Utils
@@ -162,30 +173,25 @@ Window getNextChild(Display* d, Window current)
 void targetEnemy()
 {
     // get image block
-    XImage *img = XGetImage(d, twin, cx-sx, cy-sy, sx*2, sy*2, AllPlanes, XYPixmap);
+    XImage *img = XGetImage(d, twin, cx-sd, cy-sd, sd2, sd2, AllPlanes, XYPixmap);
     if(img == NULL)
         return;
-
+    
     // increment scans per second
     sps++;
-
-    // pre-compute vars
-    const float sy2 = sy*2;
-    const float sx2 = sx*2;
 
     // top left detection
     int ax = 0, ay = 0;
     uint b1 = 0;
-    for(int y = 0; y < sy2; y++)
+    for(int y = 0; y < sd2; y++)
     {
-        for(int x = 0; x < sx2; x++)
+        for(int x = 0; x < sd2; x++)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
             const unsigned char cg = (pixel & img->green_mask) >> 8;
             const unsigned char cb = pixel & img->blue_mask;
-            //if(cr > 220 && cg < 33 && cb < 33)
-            if(cr > 250 && cg < 5 && cb < 5)
+            if(COLOR_DETECT)
             {
                 ax = x, ay = y;
                 b1 = 1;
@@ -205,16 +211,15 @@ void targetEnemy()
     // bottom right detection
     int bx = 0, by = 0;
     uint b2 = 0;
-    for(int y = sy2; y > 0; y--)
+    for(int y = sd2; y > 0; y--)
     {
-        for(int x = sx2; x > 0; x--)
+        for(int x = sd2; x > 0; x--)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
             const unsigned char cg = (pixel & img->green_mask) >> 8;
             const unsigned char cb = pixel & img->blue_mask;
-            //if(cr > 220 && cg < 33 && cb < 33)
-            if(cr > 250 && cg < 5 && cb < 5)
+            if(COLOR_DETECT)
             {
                 bx = x, by = y;
                 b2 = 1;
@@ -236,22 +241,32 @@ void targetEnemy()
     {
         // center on target
         const int dx = abs(ax-bx)/2;
-        const int dy = abs(ay-by)/2;
-        int mx = (ax-sx)+dx;
-        int my = (ay-sy)+dy;
-        
-        // prevent the mouse jumping too large distances
-        if(mx > sx){mx=sx;}
-        if(my > sx){my=sx;}
+        const int ady = abs(ay-by);
+        const int dy = ady/2;
+        int mx = (ax-sd)+dx;
+        int my = (ay-sd)+dy;
+
+        // resize scan window
+        if(ady > 6 && ady < 100)
+        {
+            sd  = ady;
+            sd2 = sd*2;
+        }
 
         // only move the mouse if one of the mx or my is > 0
-        if(mx != 0 || my != 0){xdo_move_mouse_relative(xdo, mx, my);}
+        static uint64_t lt = 0;
+        if((mx != 0 || my != 0) && microtime()-lt > MOUSE_UPDATE_NS) // limited to 60hz updates
+        {
+            xdo_move_mouse_relative(xdo, mx*mouse_scaler, my*mouse_scaler);
+            lt = microtime();
+        }
 
         // attack!
         if(autoshoot == 1)
         {
             attack = microtime();
             xdo_mouse_down(xdo, CURRENTWINDOW, 1);
+
         }
     }
 
@@ -284,7 +299,7 @@ void reprint()
 
     if(minimal == 0)
     {
-        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v1 by MegaStrog <<<\e[0m\n");
+        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v2 by MegaStrog <<<\e[0m\n");
         rainbow_line_printf("original code by the loser below\n");
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
@@ -296,7 +311,7 @@ void reprint()
         rainbow_line_printf("> If your monitor provides a crosshair that will work fine.\n");
         rainbow_line_printf("> OR just use the crosshair this bot provides.\n");
         printf("\e[38;5;76m");
-        printf("\nSet enemy outline to \"ON\" and outline color to red.\nMake sure anti-aliasing is OFF in VIDEO settings.\n\n");
+        printf("\nSet enemy outline to \"ON\" and outline color to red.\nMake sure anti-aliasing is OFF in VIDEO settings.\nSet mouse sensitivity to 1 with 0 acceleration.\n\n");
         printf("\e[38;5;123m");
 
         if(twin != 0)
@@ -405,7 +420,7 @@ int main(int argc, char *argv[])
     if(minimal > 0)
     {
         xdo_get_active_window(xdo, &this_win);
-        xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V1");
+        xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V2");
         xdo_set_window_size(xdo, this_win, 600, 1, 0);
         MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
     }
@@ -421,11 +436,14 @@ int main(int argc, char *argv[])
     while(1)
     {
         // loop every 1 ms (1,000 microsecond = 1 millisecond)
-        usleep(SCAN_DELAY);
+        usleep(SCAN_DELAY_NS);
 
         // trigger timeout
         if(autoshoot == 1 && attack-microtime() > 333000)
+        {
             xdo_mouse_up(xdo, CURRENTWINDOW, 1);
+            sd = 100, sd2 = 200;
+        }
 
         // inputs
         if(key_is_pressed(XK_Control_L) && key_is_pressed(XK_Alt_L))
@@ -551,7 +569,7 @@ int main(int argc, char *argv[])
             if(crosshair == 1)
             {
                 XSetForeground(d, gc, 65280);
-                XDrawRectangle(d, twin, gc, cx-sx-1, cy-sy-1, (sx*2)+2, (sy*2)+2);
+                XDrawRectangle(d, twin, gc, cx-sd-1, cy-sd-1, sd2+2, sd2+2);
                 XFlush(d);
             }
         }
