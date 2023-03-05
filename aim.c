@@ -14,6 +14,8 @@
     so a slow sensivitity of 1 is not really an issue for me. If you do not have
     a high DPS mouse and wish to play with a higher sensitivity you can try to
     reduce the "mouse_scaler" value.
+
+    With MOUSE_SCALER_ENABLED defined, MOUSE4 becomes a "rate unlimited" trigger.
     
     Prereq:
     sudo apt install clang xterm libx11-dev libxdo-dev
@@ -31,12 +33,18 @@
 #include <X11/Xutil.h>
 #include <xdo.h>
 
+#include <pthread.h>
+#include <fcntl.h>
+
 // user configurable
 //#define COLOR_DETECT cr > 220 && cg < 60 && cb < 60 // this will be for when the PTS goes live
 #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
 #define SCAN_DELAY_NS 1000
-#define MOUSE_UPDATE_NS 16000
-const int mouse_scaler = 2;
+#define ENABLE_MOUSE_SCALER
+#ifdef ENABLE_MOUSE_SCALER
+    int mouse_scaler = 2;
+#endif
+uint64_t MOUSE_UPDATE_NS = 16000;
 
 // other
 #define uint unsigned int
@@ -50,7 +58,7 @@ uint minimal = 0;
 uint enable = 0;
 uint crosshair = 1;
 uint hotkeys = 1;
-uint autoshoot = 1;
+uint autoshoot = 0;
 uint sps = 0;
 uint64_t attack = 0;
 int sd=100;
@@ -81,6 +89,29 @@ uint64_t microtime()
 /***************************************************
    ~~ X11 Utils
 */
+int left=0, right=0, middle=0, four=0;
+void *mouseThread(void *arg)
+{
+    int fd = open("/dev/input/mice", O_RDWR);
+    if(fd == -1)
+    {
+        printf("Failed to open '/dev/input/mice' mouse input is non-operable.\n");
+        return 0;
+    }
+    unsigned char data[3];
+    while(1)
+    {
+        int bytes = read(fd, data, sizeof(data));
+        if(bytes > 0)
+        {
+            left = data[0] & 0x1;
+            right = data[0] & 0x2;
+            middle = data[0] & 0x4;
+            four = data[0] & 0x5;
+        }
+    }
+    close(fd);
+}
 Window getWindow(Display* d, const int si) // gets child window mouse is over
 {
     XEvent event;
@@ -254,12 +285,22 @@ void targetEnemy()
         }
 
         // only move the mouse if one of the mx or my is > 0
+#ifdef ENABLE_MOUSE_SCALER
         static uint64_t lt = 0;
         if((mx != 0 || my != 0) && microtime()-lt > MOUSE_UPDATE_NS) // limited to 60hz updates
         {
+            mouse_scaler = 1;
             xdo_move_mouse_relative(xdo, mx*mouse_scaler, my*mouse_scaler);
             lt = microtime();
         }
+#else
+        static uint64_t lt = 0;
+        if(mx != 0 || my != 0)
+        {
+            xdo_move_mouse_relative(xdo, mx, my);
+            lt = microtime();
+        }
+#endif
 
         // attack!
         if(autoshoot == 1)
@@ -299,7 +340,7 @@ void reprint()
 
     if(minimal == 0)
     {
-        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v2 by MegaStrog <<<\e[0m\n");
+        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v3 by MegaStrog <<<\e[0m\n");
         rainbow_line_printf("original code by the loser below\n");
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
@@ -420,7 +461,7 @@ int main(int argc, char *argv[])
     if(minimal > 0)
     {
         xdo_get_active_window(xdo, &this_win);
-        xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V2");
+        xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3");
         xdo_set_window_size(xdo, this_win, 600, 1, 0);
         MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
     }
@@ -432,7 +473,18 @@ int main(int argc, char *argv[])
     twin = findWindow(d, 0, "Quake Champions");
     if(twin != 0)
         reprint();
+
+
+    // start mouse thread
+    pthread_t tid;
+    if(pthread_create(&tid, NULL, mouseThread, NULL) != 0)
+    {
+        pthread_detach(tid);
+        printf("pthread_create(mouseThread) failed.\n");
+        return 0;
+    }
     
+    // begin bot
     while(1)
     {
         // loop every 1 ms (1,000 microsecond = 1 millisecond)
@@ -443,6 +495,10 @@ int main(int argc, char *argv[])
         {
             xdo_mouse_up(xdo, CURRENTWINDOW, 1);
             sd = 100, sd2 = 200;
+        }
+        else if(left == 0)
+        {
+            sd = 100, sd2 = 200; // reset scan
         }
 
         // inputs
@@ -494,10 +550,11 @@ int main(int argc, char *argv[])
         if(enable == 1)
         {
             // always tracks sps
+            const int spson = key_is_pressed(XK_H);
             static uint64_t st = 0;
             if(microtime() - st >= 1000000)
             {
-                if(key_is_pressed(XK_H))
+                if(spson == 1)
                 {
                     if(minimal > 0){system("clear");}
                     printf("\e[36mSPS: %u\e[0m", sps);
@@ -563,7 +620,12 @@ int main(int argc, char *argv[])
             }
 
             // target
-            targetEnemy();
+#ifdef ENABLE_MOUSE_SCALER
+            //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
+            if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=1;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=2;} // MOUSE4 = Super Accuracy
+#endif
+            if(spson == 1 || left == 1 || four > 0 || autoshoot == 1)
+                targetEnemy();
 
             // crosshair
             if(crosshair == 1)
