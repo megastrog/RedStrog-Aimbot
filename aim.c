@@ -294,12 +294,7 @@ void targetEnemy()
             lt = microtime();
         }
 #else
-        static uint64_t lt = 0;
-        if(mx != 0 || my != 0)
-        {
-            xdo_move_mouse_relative(xdo, mx, my);
-            lt = microtime();
-        }
+        if(mx != 0 || my != 0){xdo_move_mouse_relative(xdo, mx, my);}
 #endif
 
         // attack!
@@ -307,7 +302,6 @@ void targetEnemy()
         {
             attack = microtime();
             xdo_mouse_down(xdo, CURRENTWINDOW, 1);
-
         }
     }
 
