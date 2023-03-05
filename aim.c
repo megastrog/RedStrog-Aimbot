@@ -345,6 +345,8 @@ void reprint()
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
         rainbow_line_printf("R-CTRL + R-ALT = Toggle HOTKEYS ON/OFF\n");
+        rainbow_line_printf("MOUSE1 = Target enemy (rate limit).\n");
+        rainbow_line_printf("MOUSE4 = Target enemy (rate unlimited).\n");
         rainbow_line_printf("O = Toggle autoshoot.\n");
         rainbow_line_printf("P = Toggle crosshair.\n");
         rainbow_line_printf("H = Hold pressed to print scans per second.\n");
