@@ -1,1 +1,1 @@
-sudo apt install clang xterm libx11-dev libxdo-dev
+sudo apt install clang xterm espeak libx11-dev libxdo-dev
