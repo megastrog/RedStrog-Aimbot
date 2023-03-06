@@ -453,13 +453,8 @@ int main(int argc, char *argv[])
 
     //xdo
     xdo = xdo_new_with_opened_display(d, (char*)NULL, 0);
-    if(minimal > 0)
-    {
-        xdo_get_active_window(xdo, &this_win);
-        xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3");
-        xdo_set_window_size(xdo, this_win, 600, 1, 0);
-        MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
-    }
+    time_t launch_time = 0;
+    if(minimal > 0){launch_time = time(0);}
 
     // get graphics context
     gc = DefaultGC(d, si);
@@ -484,6 +479,16 @@ int main(int argc, char *argv[])
     {
         // loop every 1 ms (1,000 microsecond = 1 millisecond)
         usleep(SCAN_DELAY_NS);
+
+        // do minimal?
+        if(launch_time != 0 && time(0)-launch_time >= 1)
+        {
+            xdo_get_active_window(xdo, &this_win);
+            xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3");
+            xdo_set_window_size(xdo, this_win, 600, 1, 0);
+            MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
+            launch_time = 0;
+        }
 
         // trigger timeout
         if(autoshoot == 1 && attack-microtime() > 333000)
