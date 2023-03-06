@@ -18,7 +18,7 @@
     With MOUSE_SCALER_ENABLED defined, MOUSE4 becomes a "rate unlimited" trigger.
     
     Prereq:
-    sudo apt install clang xterm libx11-dev libxdo-dev
+    sudo apt install clang xterm espeak libx11-dev libxdo-dev
 
 */
 
@@ -40,11 +40,14 @@
 //#define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // this will be for when the PTS goes live
 #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
 #define SCAN_DELAY_NS 1000
+#define OPTION_DELAY_MS 200000
 #define ENABLE_MOUSE_SCALER
 #ifdef ENABLE_MOUSE_SCALER
     int mouse_scaler = 2;
 #endif
 uint64_t MOUSE_UPDATE_NS = 16000;
+
+//#define EFFICIENT_SCAN // uncommenting this will increase your SPS rate of the triggerbot
 
 // other
 #define uint unsigned int
@@ -59,6 +62,7 @@ uint enable = 0;
 uint crosshair = 1;
 uint hotkeys = 1;
 uint autoshoot = 0;
+uint triggerbot = 0;
 uint sps = 0;
 uint64_t attack = 0;
 int sd=100;
@@ -84,6 +88,12 @@ uint64_t microtime()
     memset(&tz, 0, sizeof(struct timezone));
     gettimeofday(&tv, &tz);
     return 1000000 * tv.tv_sec + tv.tv_usec;
+}
+void speakS(const char* text)
+{
+    char s[256];
+    sprintf(s, "/usr/bin/espeak -s 240 \"%s\"", text);
+    system(s);
 }
 
 /***************************************************
@@ -307,6 +317,123 @@ void targetEnemy()
     // done
     XDestroyImage(img);
 }
+uint isEnemy()
+{
+    // get image block
+    XImage *img = XGetImage(d, twin, cx-14, cy-14, 28, 28, AllPlanes, XYPixmap);
+    if(img == NULL)
+        return 0;
+    
+    // increment scans per second
+    sps++;
+
+    // extract colour information
+    uint c1 = 0;
+    for(int y = 0; y < 14; y++)
+    {
+        for(int x = 0; x < 14; x++)
+        {
+            const unsigned long pixel = XGetPixel(img, x, y);
+            const unsigned char cr = (pixel & img->red_mask) >> 16;
+            const unsigned char cg = (pixel & img->green_mask) >> 8;
+            const unsigned char cb = pixel & img->blue_mask;
+            if(COLOR_DETECT)
+            {
+                c1=1;
+                break;
+            }
+        }
+        if(c1 == 1){break;}
+    }
+#ifdef EFFICIENT_SCAN
+    if(c1 == 0)
+    {
+        XDestroyImage(img);
+        return 0;
+    }
+#endif
+    uint c2 = 0;
+    for(int y = 14; y < 28; y++)
+    {
+        for(int x = 0; x < 14; x++)
+        {
+            const unsigned long pixel = XGetPixel(img, x, y);
+            const unsigned char cr = (pixel & img->red_mask) >> 16;
+            const unsigned char cg = (pixel & img->green_mask) >> 8;
+            const unsigned char cb = pixel & img->blue_mask;
+            if(COLOR_DETECT)
+            {
+                c2=1;
+                break;
+            }
+        }
+        if(c2 == 1){break;}
+    }
+#ifdef EFFICIENT_SCAN
+    if(c2 == 0)
+    {
+        XDestroyImage(img);
+        return 0;
+    }
+#endif
+    uint c3 = 0;
+    for(int y = 0; y < 14; y++)
+    {
+        for(int x = 14; x < 28; x++)
+        {
+            const unsigned long pixel = XGetPixel(img, x, y);
+            const unsigned char cr = (pixel & img->red_mask) >> 16;
+            const unsigned char cg = (pixel & img->green_mask) >> 8;
+            const unsigned char cb = pixel & img->blue_mask;
+            if(COLOR_DETECT)
+            {
+                c3=1;
+                break;
+            }
+        }
+        if(c3 == 1){break;}
+    }
+#ifdef EFFICIENT_SCAN
+    if(c3 == 0)
+    {
+        XDestroyImage(img);
+        return 0;
+    }
+#endif
+    uint c4 = 0;
+    for(int y = 14; y < 28; y++)
+    {
+        for(int x = 14; x < 28; x++)
+        {
+            const unsigned long pixel = XGetPixel(img, x, y);
+            const unsigned char cr = (pixel & img->red_mask) >> 16;
+            const unsigned char cg = (pixel & img->green_mask) >> 8;
+            const unsigned char cb = pixel & img->blue_mask;
+            if(COLOR_DETECT)
+            {
+                c4=1;
+                break;
+            }
+        }
+        if(c4 == 1){break;}
+    }
+#ifdef EFFICIENT_SCAN
+    if(c4 == 0)
+    {
+        XDestroyImage(img);
+        return 0;
+    }
+#endif
+
+#ifndef EFFICIENT_SCAN
+    if(c1+c2+c3+c4 < 3)
+        return 0;
+#endif
+
+    // done
+    XDestroyImage(img);
+    return 1;
+}
 
 /***************************************************
    ~~ Program Entry Point
@@ -340,7 +467,9 @@ void reprint()
         rainbow_line_printf("R-CTRL + R-ALT = Toggle HOTKEYS ON/OFF\n");
         rainbow_line_printf("MOUSE1 = Target enemy (rate limit).\n");
         rainbow_line_printf("MOUSE4 = Target enemy (rate unlimited).\n");
-        rainbow_line_printf("O = Toggle autoshoot.\n");
+        rainbow_line_printf("U = Speak whats enabled.\n");
+        rainbow_line_printf("I = Toggle autoshoot.\n");
+        rainbow_line_printf("O = Toggle triggerbot.\n");
         rainbow_line_printf("P = Toggle crosshair.\n");
         rainbow_line_printf("H = Hold pressed to print scans per second.\n");
         rainbow_line_printf("\nDisable the game crosshair.\n");
@@ -363,6 +492,11 @@ void reprint()
                 rainbow_line_printf("AUTOSHOOT: \033[1m\e[32mON\e[0m\n");
             else
                 rainbow_line_printf("AUTOSHOOT: \033[1m\e[31mOFF\e[0m\n");
+
+            if(triggerbot == 1)
+                rainbow_line_printf("TRIGGERBOT: \033[1m\e[32mON\e[0m\n");
+            else
+                rainbow_line_printf("TRIGGERBOT: \033[1m\e[31mOFF\e[0m\n");
 
             if(crosshair == 1)
                 rainbow_line_printf("CROSSHAIR: \033[1m\e[32mON\e[0m\n");
@@ -390,6 +524,11 @@ void reprint()
                 printf("\e[38;5;%umAUTOSHOOT: \033[1m\e[32mON\e[0m | ", minimal);
             else
                 printf("\e[38;5;%umAUTOSHOOT: \033[1m\e[31mOFF\e[0m | ", minimal);
+
+            if(triggerbot == 1)
+                printf("\e[38;5;%umTRIGGERBOT: \033[1m\e[32mON\e[0m | ", minimal);
+            else
+                printf("\e[38;5;%umTRIGGERBOT: \033[1m\e[31mOFF\e[0m | ", minimal);
 
             if(crosshair == 1)
                 printf("\e[38;5;%umCROSSHAIR: \033[1m\e[32mON\e[0m | ", minimal);
@@ -535,13 +674,13 @@ int main(int argc, char *argv[])
 
                 // toggle
                 enable = 1;
-                usleep(300000);
+                usleep(OPTION_DELAY_MS);
                 reprint();
             }
             else
             {
                 enable = 0;
-                usleep(300000);
+                usleep(OPTION_DELAY_MS);
                 reprint();
             }
         }
@@ -570,13 +709,13 @@ int main(int argc, char *argv[])
                 if(hotkeys == 0)
                 {
                     hotkeys = 1;
-                    usleep(300000);
+                    usleep(33000);
                     reprint();
                 }
                 else
                 {
                     hotkeys = 0;
-                    usleep(300000);
+                    usleep(33000);
                     reprint();
                 }
             }
@@ -584,54 +723,94 @@ int main(int argc, char *argv[])
             // do hotkeys
             if(hotkeys == 1)
             {
+                // speak enabled
+                if(key_is_pressed(XK_U))
+                {
+                    if(triggerbot == 1){speakS("triggerbot");}
+                    else if(autoshoot == 1){speakS("autoshoot");}
+                    else{speakS("base");}
+                }
+
+                // autoshoot toggle
+                if(key_is_pressed(XK_I))
+                {
+                    if(autoshoot == 0)
+                    {
+                        autoshoot = 1;
+                        usleep(OPTION_DELAY_MS);
+                        reprint();
+                    }
+                    else
+                    {
+                        autoshoot = 0;
+                        usleep(OPTION_DELAY_MS);
+                        reprint();
+                    }
+                }
+
+                // triggerbot toggle
+                if(key_is_pressed(XK_O))
+                {
+                    if(triggerbot == 0)
+                    {
+                        triggerbot = 1;
+                        usleep(OPTION_DELAY_MS);
+                        reprint();
+                    }
+                    else
+                    {
+                        triggerbot = 0;
+                        usleep(OPTION_DELAY_MS);
+                        reprint();
+                    }
+                }
+
                 // crosshair toggle
                 if(key_is_pressed(XK_P))
                 {
                     if(crosshair == 0)
                     {
                         crosshair = 1;
-                        usleep(300000);
+                        usleep(OPTION_DELAY_MS);
                         reprint();
                     }
                     else
                     {
                         crosshair = 0;
-                        usleep(300000);
-                        reprint();
-                    }
-                }
-
-                // autoshoot toggle
-                if(key_is_pressed(XK_O))
-                {
-                    if(autoshoot == 0)
-                    {
-                        autoshoot = 1;
-                        usleep(300000);
-                        reprint();
-                    }
-                    else
-                    {
-                        autoshoot = 0;
-                        usleep(300000);
+                        usleep(OPTION_DELAY_MS);
                         reprint();
                     }
                 }
             }
 
-            // target
+            if(triggerbot == 1)
+            {
+                if(isEnemy() == 1)
+                {
+                    xdo_mouse_down(xdo, CURRENTWINDOW, 1);
+                    usleep(10000); // or cheating ban
+                    xdo_mouse_up(xdo, CURRENTWINDOW, 1);
+                }
+            }
+            else
+            {
+                // target
 #ifdef ENABLE_MOUSE_SCALER
-            //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
-            if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=1;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=2;} // MOUSE4 = Super Accuracy
+                //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
+                if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=1;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=2;} // MOUSE4 = Super Accuracy
 #endif
-            if(spson == 1 || left == 1 || four > 0 || autoshoot == 1)
-                targetEnemy();
+                if(spson == 1 || left == 1 || four > 0 || autoshoot == 1)
+                    targetEnemy();
+            }
 
             // crosshair
             if(crosshair == 1)
             {
                 XSetForeground(d, gc, 65280);
-                XDrawRectangle(d, twin, gc, cx-sd-1, cy-sd-1, sd2+2, sd2+2);
+                if(triggerbot == 1)
+                    XDrawRectangle(d, twin, gc, cx-15, cy-15, 30, 30);
+                else
+                    XDrawRectangle(d, twin, gc, cx-sd-1, cy-sd-1, sd2+2, sd2+2);
                 XFlush(d);
             }
         }
