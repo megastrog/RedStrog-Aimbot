@@ -5,4 +5,4 @@ Linux Aimbot for Quake Champions just set Enemy Outline to "ON" and Enemy Outlin
 
 Make sure anti-aliasing is OFF in VIDEO settings.
 
-Run in windowed mode.
+Set mouse sensitivity to 1 with 0 acceleration.
