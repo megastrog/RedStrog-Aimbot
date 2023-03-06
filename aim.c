@@ -40,7 +40,7 @@
 //#define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // this will be for when the PTS goes live
 #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
 #define SCAN_DELAY_NS 1000
-#define OPTION_DELAY_MS 200000
+#define OPTION_DELAY_MS 300000
 #define ENABLE_MOUSE_SCALER
 #ifdef ENABLE_MOUSE_SCALER
     int mouse_scaler = 2;
