@@ -37,8 +37,11 @@
 #include <fcntl.h>
 
 // user configurable
-//#define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // this will be for when the PTS goes live
-#define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
+#ifdef PTS
+    #define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // this will be for when the PTS goes live
+#else
+    #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
+#endif
 #define SCAN_DELAY_NS 1000
 #define OPTION_DELAY_MS 300000
 #define ENABLE_MOUSE_SCALER
@@ -67,6 +70,8 @@ uint sps = 0;
 uint64_t attack = 0;
 int sd=100;
 int sd2=200;
+int tsd=28;
+int tsd2=14;
 
 /***************************************************
    ~~ Utils
@@ -320,7 +325,7 @@ void targetEnemy()
 uint isEnemy()
 {
     // get image block
-    XImage *img = XGetImage(d, twin, cx-14, cy-14, 28, 28, AllPlanes, XYPixmap);
+    XImage *img = XGetImage(d, twin, cx-tsd2, cy-tsd2, tsd, tsd, AllPlanes, XYPixmap);
     if(img == NULL)
         return 0;
     
@@ -329,9 +334,9 @@ uint isEnemy()
 
     // extract colour information
     uint c1 = 0;
-    for(int y = 0; y < 14; y++)
+    for(int y = 0; y < tsd2; y++)
     {
-        for(int x = 0; x < 14; x++)
+        for(int x = 0; x < tsd2; x++)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
@@ -353,9 +358,9 @@ uint isEnemy()
     }
 #endif
     uint c2 = 0;
-    for(int y = 14; y < 28; y++)
+    for(int y = tsd2; y < tsd; y++)
     {
-        for(int x = 0; x < 14; x++)
+        for(int x = 0; x < tsd2; x++)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
@@ -377,9 +382,9 @@ uint isEnemy()
     }
 #endif
     uint c3 = 0;
-    for(int y = 0; y < 14; y++)
+    for(int y = 0; y < tsd2; y++)
     {
-        for(int x = 14; x < 28; x++)
+        for(int x = tsd2; x < tsd; x++)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
@@ -401,9 +406,9 @@ uint isEnemy()
     }
 #endif
     uint c4 = 0;
-    for(int y = 14; y < 28; y++)
+    for(int y = tsd2; y < tsd; y++)
     {
-        for(int x = 14; x < 28; x++)
+        for(int x = tsd2; x < tsd; x++)
         {
             const unsigned long pixel = XGetPixel(img, x, y);
             const unsigned char cr = (pixel & img->red_mask) >> 16;
@@ -460,7 +465,11 @@ void reprint()
 
     if(minimal == 0)
     {
+#ifdef PTS
+        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v3 PTS by MegaStrog <<<\e[0m\n");
+#else
         printf("\033[1m\033[0;31m>>> RedStrog Aimbot v3 by MegaStrog <<<\e[0m\n");
+#endif
         rainbow_line_printf("original code by the loser below\n");
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
@@ -623,7 +632,11 @@ int main(int argc, char *argv[])
         if(launch_time != 0 && time(0)-launch_time >= 1)
         {
             xdo_get_active_window(xdo, &this_win);
+#ifdef PTS
+            xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3 PTS");
+#else
             xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3");
+#endif
             xdo_set_window_size(xdo, this_win, 600, 1, 0);
             MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
             launch_time = 0;
@@ -785,6 +798,7 @@ int main(int argc, char *argv[])
 
             if(triggerbot == 1)
             {
+                if(four >= 4){tsd=14,tsd2=7;}else{tsd=28,tsd2=14;} // scale flippening
                 if(isEnemy() == 1)
                 {
                     xdo_mouse_down(xdo, CURRENTWINDOW, 1);
@@ -808,7 +822,7 @@ int main(int argc, char *argv[])
             {
                 XSetForeground(d, gc, 65280);
                 if(triggerbot == 1)
-                    XDrawRectangle(d, twin, gc, cx-15, cy-15, 30, 30);
+                    XDrawRectangle(d, twin, gc, cx-tsd2-1, cy-tsd2-1, tsd+2, tsd+2);
                 else
                     XDrawRectangle(d, twin, gc, cx-sd-1, cy-sd-1, sd2+2, sd2+2);
                 XFlush(d);
