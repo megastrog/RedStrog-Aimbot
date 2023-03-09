@@ -722,13 +722,13 @@ int main(int argc, char *argv[])
                 if(hotkeys == 0)
                 {
                     hotkeys = 1;
-                    usleep(33000);
+                    usleep(OPTION_DELAY_MS);
                     reprint();
                 }
                 else
                 {
                     hotkeys = 0;
-                    usleep(33000);
+                    usleep(OPTION_DELAY_MS);
                     reprint();
                 }
             }
