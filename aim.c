@@ -46,7 +46,9 @@
 #define OPTION_DELAY_MS 300000
 #define ENABLE_MOUSE_SCALER
 #ifdef ENABLE_MOUSE_SCALER
-    float mouse_scaler = 0.1f;
+    float mouse_scaler;
+    float mousescale_small = 1.f;
+    float mousescale_large = 2.f;
 #endif
 uint64_t MOUSE_UPDATE_NS = 16000;
 
@@ -291,8 +293,10 @@ void targetEnemy()
         const int dy = ady/2;
         int mx = (ax-sd)+dx;
         int my = (ay-sd)+dy;
+#ifdef ENABLE_MOUSE_SCALER
         mx = (int)(((float)mx)*mouse_scaler);
         my = (int)(((float)my)*mouse_scaler);
+#endif
 
         // resize scan window
         if(ady > 6 && ady < 100)
@@ -563,6 +567,7 @@ void reprint()
 int main(int argc, char *argv[])
 {
     srand(time(0));
+    mouse_scaler = mousescale_large;
 
     // is minimal ui?
     if(argc == 2)
@@ -813,7 +818,7 @@ int main(int argc, char *argv[])
                 // target
 #ifdef ENABLE_MOUSE_SCALER
                 //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
-                if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=1;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=2;} // MOUSE4 = Super Accuracy
+                if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
 #endif
                 if(spson == 1 || left == 1 || four > 0 || autoshoot == 1)
                     targetEnemy();
