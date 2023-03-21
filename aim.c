@@ -15,7 +15,7 @@
     a high DPS mouse and wish to play with a higher sensitivity you can try to
     reduce the "mouse_scaler" value.
 
-    With MOUSE_SCALER_ENABLED defined, MOUSE4 becomes a "rate unlimited" trigger.
+    With MOUSE_SCALER_ENABLED defined, MOUSE4/3/LSHIFT becomes a "rate unlimited" trigger.
     
     Prereq:
     sudo apt install clang xterm espeak libx11-dev libxdo-dev
@@ -818,7 +818,7 @@ int main(int argc, char *argv[])
                 // target
 #ifdef ENABLE_MOUSE_SCALER
                 //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
-                if(four >= 4){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+                if(four >= 4 || key_is_pressed(XK_Shift_L)){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
 #endif
                 if(spson == 1 || left == 1 || four > 0 || autoshoot == 1)
                     targetEnemy();
