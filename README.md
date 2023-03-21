@@ -7,4 +7,4 @@ Make sure anti-aliasing is OFF in VIDEO settings.
 
 Set mouse sensitivity to 1 with 0 acceleration. Otherwise adjust `mousescalar_small` and `mousescalar_large` variables accordingly in the source code, `mousescalar_small` is for the MOUSE4/3/LSHIFT function and `mousescalar_large` is for the MOUSE1/Autoaim function.
 
-To improve game performance on Linux run it in a window and set the LAUNCH OPTIONS for Quake Champions as `RADV_PERFTEST=gpl %command%`.
+To improve game performance on Linux run it in a window and set the **LAUNCH OPTIONS** for Quake Champions as `RADV_PERFTEST=gpl %command%`.
