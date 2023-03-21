@@ -46,7 +46,7 @@
 #define OPTION_DELAY_MS 300000
 #define ENABLE_MOUSE_SCALER
 #ifdef ENABLE_MOUSE_SCALER
-    int mouse_scaler = 2;
+    float mouse_scaler = 0.1f;
 #endif
 uint64_t MOUSE_UPDATE_NS = 16000;
 
@@ -291,6 +291,8 @@ void targetEnemy()
         const int dy = ady/2;
         int mx = (ax-sd)+dx;
         int my = (ay-sd)+dy;
+        mx = (int)(((float)mx)*mouse_scaler);
+        my = (int)(((float)my)*mouse_scaler);
 
         // resize scan window
         if(ady > 6 && ady < 100)
@@ -304,7 +306,7 @@ void targetEnemy()
         static uint64_t lt = 0;
         if((mx != 0 || my != 0) && microtime()-lt > MOUSE_UPDATE_NS) // limited to 60hz updates
         {
-            xdo_move_mouse_relative(xdo, mx*mouse_scaler, my*mouse_scaler);
+            xdo_move_mouse_relative(xdo, mx, my);
             lt = microtime();
         }
 #else
