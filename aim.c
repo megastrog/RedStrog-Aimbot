@@ -44,6 +44,7 @@
 #endif
 #define SCAN_DELAY_NS 1000
 #define OPTION_DELAY_MS 300000
+//#define ENABLE_SHIFT // this will disable MOUSE4&3 for L&R SHIFT
 #define ENABLE_MOUSE_SCALER
 #ifdef ENABLE_MOUSE_SCALER
     float mouse_scaler;
@@ -818,10 +819,14 @@ int main(int argc, char *argv[])
                 // target
 #ifdef ENABLE_MOUSE_SCALER
                 //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
-                const int isp = key_is_pressed(XK_Shift_L);
-                if(four >= 4 || isp){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+#ifdef ENABLE_SHIFT
+                const int isp = key_is_pressed(XK_Shift_L) || key_is_pressed(XK_Shift_R);
+#else
+                const int isp = four > 0;
 #endif
-                if(spson == 1 || left == 1 || four > 0 || autoshoot == 1 || isp)
+                if(isp){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+#endif
+                if(spson == 1 || left == 1 || autoshoot == 1 || isp)
                     targetEnemy();
             }
 
