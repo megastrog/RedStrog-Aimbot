@@ -52,7 +52,7 @@
 #endif
 uint64_t MOUSE_UPDATE_NS = 16000;
 
-//#define EFFICIENT_SCAN // uncommenting this will increase your SPS rate of the triggerbot
+//#define EFFICIENT_SCAN // uncommenting this will increase the SPS rate of the triggerbot
 
 // other
 #define uint unsigned int
@@ -481,7 +481,7 @@ void reprint()
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
         rainbow_line_printf("R-CTRL + R-ALT = Toggle HOTKEYS ON/OFF\n");
         rainbow_line_printf("MOUSE1 = Target enemy (rate limit).\n");
-        rainbow_line_printf("MOUSE4 = Target enemy (rate unlimited).\n");
+        rainbow_line_printf("MOUSE4/3/LSHIFT = Target enemy (rate unlimited).\n");
         rainbow_line_printf("U = Speak whats enabled.\n");
         rainbow_line_printf("I = Toggle autoshoot.\n");
         rainbow_line_printf("O = Toggle triggerbot.\n");
@@ -818,10 +818,10 @@ int main(int argc, char *argv[])
                 // target
 #ifdef ENABLE_MOUSE_SCALER
                 //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
-                const int ips = key_is_pressed(XK_Shift_L);
-                if(four >= 4 || ips){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+                const int isp = key_is_pressed(XK_Shift_L);
+                if(four >= 4 || isp){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
 #endif
-                if(spson == 1 || left == 1 || four > 0 || autoshoot == 1 || ips)
+                if(spson == 1 || left == 1 || four > 0 || autoshoot == 1 || isp)
                     targetEnemy();
             }
 
