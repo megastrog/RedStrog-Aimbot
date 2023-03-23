@@ -48,6 +48,7 @@ useconds_t SCAN_DELAY_NS = 1000;
     float mouse_scaler;
     float mousescale_small = 1.f;
     float mousescale_large = 2.f;
+    uint64_t DEFAULT_MOUSE_UPDATE_NS = 16000;
     uint64_t MOUSE_UPDATE_NS = 16000;
 #endif
 
@@ -114,7 +115,7 @@ void loadConfig(const uint minimal)
             {
                 if(strcmp(set, "SCAN_DELAY_NS") == 0){SCAN_DELAY_NS = (useconds_t)val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
 #ifndef DISABLE_MOUSE_SCALER
-                if(strcmp(set, "MOUSE_UPDATE_NS") == 0){MOUSE_UPDATE_NS = (uint64_t)val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
+                if(strcmp(set, "MOUSE_UPDATE_NS") == 0){MOUSE_UPDATE_NS = (uint64_t)val; DEFAULT_MOUSE_UPDATE_NS = MOUSE_UPDATE_NS; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
                 if(strcmp(set, "MOUSESCALE_AUX") == 0){mousescale_small = val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
                 if(strcmp(set, "MOUSESCALE_MAIN") == 0){mousescale_large = val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
 #endif
@@ -870,7 +871,7 @@ int main(int argc, char *argv[])
                     sd=50,sd2=100;
                 }
 #ifndef DISABLE_MOUSE_SCALER
-                else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+                else{MOUSE_UPDATE_NS=DEFAULT_MOUSE_UPDATE_NS;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
 #endif
 
                 if(spson == 1 || left == 1 || autoshoot == 1 || isp)
