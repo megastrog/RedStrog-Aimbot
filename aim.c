@@ -37,12 +37,9 @@
 #include <fcntl.h>
 
 // user configurable
-#ifdef PTS
-    #define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // this will be for when the PTS goes live
-#else
-    #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
-#endif
-#define SCAN_DELAY_NS 1000
+//#define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // old 1.18 PTS range
+#define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
+useconds_t SCAN_DELAY_NS = 1000;
 #define OPTION_DELAY_MS 300000
 //#define ENABLE_SHIFT // this will disable MOUSE4&3 for L&R SHIFT
 #define ENABLE_MOUSE_SCALER
@@ -102,6 +99,30 @@ void speakS(const char* text)
     char s[256];
     sprintf(s, "/usr/bin/espeak -s 240 \"%s\"", text);
     system(s);
+}
+void loadConfig(const uint minimal)
+{
+    FILE* f = fopen("config.txt", "r");
+    if(f)
+    {
+        char line[256];
+        while(fgets(line, 256, f) != NULL)
+        {
+            char set[64];
+            memset(set, 0, 64);
+            float val;
+            if(sscanf(line, "%63s %f", set, &val) == 2)
+            {
+                if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}
+                if(strcmp(set, "SCAN_DELAY_NS") == 0){SCAN_DELAY_NS = (useconds_t)val;}
+                if(strcmp(set, "MOUSE_UPDATE_NS") == 0){MOUSE_UPDATE_NS = (uint64_t)val;}
+                if(strcmp(set, "MOUSESCALE_AUX") == 0){mousescale_small = val;}
+                if(strcmp(set, "MOUSESCALE_MAIN") == 0){mousescale_large = val;}
+            }
+        }
+        fclose(f);
+        if(minimal == 0){printf("\n");}
+    }
 }
 
 /***************************************************
@@ -472,27 +493,31 @@ void reprint()
 
     if(minimal == 0)
     {
-#ifdef PTS
-        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v3 PTS by MegaStrog <<<\e[0m\n");
-#else
-        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v3 by MegaStrog <<<\e[0m\n");
-#endif
+        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v4 by MegaStrog <<<\e[0m\n");
         rainbow_line_printf("original code by the loser below\n");
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
         rainbow_line_printf("R-CTRL + R-ALT = Toggle HOTKEYS ON/OFF\n");
         rainbow_line_printf("MOUSE1 = Target enemy (rate limit).\n");
-        rainbow_line_printf("MOUSE4/3/LSHIFT = Target enemy (rate unlimited).\n");
+#ifdef ENABLE_SHIFT
+        rainbow_line_printf("LSHIFT/RSHIFT = Target enemy (rate unlimited).\n");
+#else
+        rainbow_line_printf("MOUSE4/MOUSE3 = Target enemy (rate unlimited).\n");
+#endif
         rainbow_line_printf("U = Speak whats enabled.\n");
         rainbow_line_printf("I = Toggle autoshoot.\n");
+#ifdef EFFICIENT_SCAN
+        rainbow_line_printf("O = Toggle triggerbot. \e[38;5;123m[FAST SCAN ENABLED]\n");
+#else
         rainbow_line_printf("O = Toggle triggerbot.\n");
+#endif
         rainbow_line_printf("P = Toggle crosshair.\n");
         rainbow_line_printf("H = Hold pressed to print scans per second.\n");
         rainbow_line_printf("\nDisable the game crosshair.\n");
         rainbow_line_printf("> If your monitor provides a crosshair that will work fine.\n");
         rainbow_line_printf("> OR just use the crosshair this bot provides.\n");
         printf("\e[38;5;76m");
-        printf("\nSet enemy outline to \"ON\" and outline color to red.\nMake sure anti-aliasing is OFF in VIDEO settings.\nSet mouse sensitivity to 1 with 0 acceleration.\n\n");
+        printf("\n- Set enemy outline to \"ON\" and outline color to red\n  and set ENEMY ARROW to disabled.\n- Make sure anti-aliasing is OFF in VIDEO settings.\n- Set mouse sensitivity to 1 with 0 acceleration.\n  (or configure mouse scaling)\n- You may yield better performance by setting LAUNCH OPTIONS to;\n  RADV_PERFTEST=gpl %%command%%\n\n");
         printf("\e[38;5;123m");
 
         if(twin != 0)
@@ -567,6 +592,7 @@ void reprint()
 }
 int main(int argc, char *argv[])
 {
+    // some init stuff
     srand(time(0));
     mouse_scaler = mousescale_large;
 
@@ -580,6 +606,9 @@ int main(int argc, char *argv[])
 
     // intro
     reprint();
+
+    // load config
+    loadConfig(minimal);
 
     //
 
@@ -620,7 +649,6 @@ int main(int argc, char *argv[])
     if(twin != 0)
         reprint();
 
-
     // start mouse thread
     pthread_t tid;
     if(pthread_create(&tid, NULL, mouseThread, NULL) != 0)
@@ -640,11 +668,7 @@ int main(int argc, char *argv[])
         if(launch_time != 0 && time(0)-launch_time >= 1)
         {
             xdo_get_active_window(xdo, &this_win);
-#ifdef PTS
-            xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3 PTS");
-#else
-            xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V3");
-#endif
+            xdo_set_window_property(xdo, this_win, "WM_NAME", "RedStrog Aimbot V4");
             xdo_set_window_size(xdo, this_win, 600, 1, 0);
             MakeAlwaysOnTop(d, XDefaultRootWindow(d), this_win);
             launch_time = 0;
