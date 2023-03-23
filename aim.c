@@ -41,16 +41,15 @@
 #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
 useconds_t SCAN_DELAY_NS = 1000;
 #define OPTION_DELAY_MS 300000
+//#define EFFICIENT_SCAN // uncommenting this will increase the SPS rate of the triggerbot
 //#define ENABLE_SHIFT // this will disable MOUSE4&3 for L&R SHIFT
-#define ENABLE_MOUSE_SCALER
-#ifdef ENABLE_MOUSE_SCALER
+//#define DISABLE_MOUSE_SCALER
+#ifndef DISABLE_MOUSE_SCALER
     float mouse_scaler;
     float mousescale_small = 1.f;
     float mousescale_large = 2.f;
+    uint64_t MOUSE_UPDATE_NS = 16000;
 #endif
-uint64_t MOUSE_UPDATE_NS = 16000;
-
-//#define EFFICIENT_SCAN // uncommenting this will increase the SPS rate of the triggerbot
 
 // other
 #define uint unsigned int
@@ -113,11 +112,12 @@ void loadConfig(const uint minimal)
             float val;
             if(sscanf(line, "%63s %f", set, &val) == 2)
             {
-                if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}
-                if(strcmp(set, "SCAN_DELAY_NS") == 0){SCAN_DELAY_NS = (useconds_t)val;}
-                if(strcmp(set, "MOUSE_UPDATE_NS") == 0){MOUSE_UPDATE_NS = (uint64_t)val;}
-                if(strcmp(set, "MOUSESCALE_AUX") == 0){mousescale_small = val;}
-                if(strcmp(set, "MOUSESCALE_MAIN") == 0){mousescale_large = val;}
+                if(strcmp(set, "SCAN_DELAY_NS") == 0){SCAN_DELAY_NS = (useconds_t)val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
+#ifndef DISABLE_MOUSE_SCALER
+                if(strcmp(set, "MOUSE_UPDATE_NS") == 0){MOUSE_UPDATE_NS = (uint64_t)val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
+                if(strcmp(set, "MOUSESCALE_AUX") == 0){mousescale_small = val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
+                if(strcmp(set, "MOUSESCALE_MAIN") == 0){mousescale_large = val; if(minimal == 0){printf("Setting Loaded: \e[38;5;76m%s\e[38;5;123m \e[38;5;13m%g\e[38;5;123m\n", set, val);}}
+#endif
             }
         }
         fclose(f);
@@ -315,7 +315,7 @@ void targetEnemy()
         const int dy = ady/2;
         int mx = (ax-sd)+dx;
         int my = (ay-sd)+dy;
-#ifdef ENABLE_MOUSE_SCALER
+#ifndef DISABLE_MOUSE_SCALER
         mx = (int)(((float)mx)*mouse_scaler);
         my = (int)(((float)my)*mouse_scaler);
 #endif
@@ -328,7 +328,7 @@ void targetEnemy()
         }
 
         // only move the mouse if one of the mx or my is > 0
-#ifdef ENABLE_MOUSE_SCALER
+#ifndef DISABLE_MOUSE_SCALER
         static uint64_t lt = 0;
         if((mx != 0 || my != 0) && microtime()-lt > MOUSE_UPDATE_NS) // limited to 60hz updates
         {
@@ -498,11 +498,23 @@ void reprint()
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
         rainbow_line_printf("R-CTRL + R-ALT = Toggle HOTKEYS ON/OFF\n");
+#ifndef DISABLE_MOUSE_SCALER
         rainbow_line_printf("MOUSE1 = Target enemy (rate limit).\n");
-#ifdef ENABLE_SHIFT
-        rainbow_line_printf("LSHIFT/RSHIFT = Target enemy (rate unlimited).\n");
 #else
-        rainbow_line_printf("MOUSE4/MOUSE3 = Target enemy (rate unlimited).\n");
+        rainbow_line_printf("MOUSE1 = Target enemy.\n");
+#endif
+#ifndef DISABLE_MOUSE_SCALER
+    #ifdef ENABLE_SHIFT
+            rainbow_line_printf("LSHIFT/RSHIFT = Target enemy (rate unlimited).\n");
+    #else
+            rainbow_line_printf("MOUSE4/MOUSE3 = Target enemy (rate unlimited).\n");
+    #endif
+#else
+    #ifdef ENABLE_SHIFT
+            rainbow_line_printf("LSHIFT/RSHIFT = Reduce scan area.\n");
+    #else
+            rainbow_line_printf("MOUSE4/MOUSE3 = Reduce scan area.\n");
+    #endif
 #endif
         rainbow_line_printf("U = Speak whats enabled.\n");
         rainbow_line_printf("I = Toggle autoshoot.\n");
@@ -517,7 +529,7 @@ void reprint()
         rainbow_line_printf("> If your monitor provides a crosshair that will work fine.\n");
         rainbow_line_printf("> OR just use the crosshair this bot provides.\n");
         printf("\e[38;5;76m");
-        printf("\n- Set enemy outline to \"ON\" and outline color to red\n  and set ENEMY ARROW to disabled.\n- Make sure anti-aliasing is OFF in VIDEO settings.\n- Set mouse sensitivity to 1 with 0 acceleration.\n  (or configure mouse scaling)\n- You may yield better performance by setting LAUNCH OPTIONS to;\n  RADV_PERFTEST=gpl %%command%%\n\n");
+        printf("\n- Set enemy outline to \"ON\" and outline color to red\n  and set ENEMY ARROW to disabled.\n- Make sure anti-aliasing is OFF in VIDEO settings.\n- Set mouse sensitivity to 1 with 0 acceleration.\n  (or configure mouse scaling in config.txt)\n- You may yield better performance by setting LAUNCH OPTIONS to;\n  RADV_PERFTEST=gpl %%command%%\n\n");
         printf("\e[38;5;123m");
 
         if(twin != 0)
@@ -594,7 +606,9 @@ int main(int argc, char *argv[])
 {
     // some init stuff
     srand(time(0));
+#ifndef DISABLE_MOUSE_SCALER
     mouse_scaler = mousescale_large;
+#endif
 
     // is minimal ui?
     if(argc == 2)
@@ -841,15 +855,24 @@ int main(int argc, char *argv[])
             else
             {
                 // target
-#ifdef ENABLE_MOUSE_SCALER
                 //printf("%li - %i\n", MOUSE_UPDATE_NS, four);
 #ifdef ENABLE_SHIFT
                 const int isp = key_is_pressed(XK_Shift_L) || key_is_pressed(XK_Shift_R);
 #else
                 const int isp = four > 0;
 #endif
-                if(isp){MOUSE_UPDATE_NS = 0;mouse_scaler=mousescale_small;sd=50,sd2=100;}else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+                if(isp)
+                {
+#ifndef DISABLE_MOUSE_SCALER
+                    MOUSE_UPDATE_NS = 0;
+                    mouse_scaler=mousescale_small;
 #endif
+                    sd=50,sd2=100;
+                }
+#ifndef DISABLE_MOUSE_SCALER
+                else{MOUSE_UPDATE_NS=16000;mouse_scaler=mousescale_large;} // MOUSE4 = Super Accuracy
+#endif
+
                 if(spson == 1 || left == 1 || autoshoot == 1 || isp)
                     targetEnemy();
             }
