@@ -39,15 +39,15 @@
 // user configurable
 //#define COLOR_DETECT cr > 220 && cg < 70 && cb < 70 // old 1.18 PTS range
 #define COLOR_DETECT cr > 250 && cg < 3 && cb < 3
-useconds_t SCAN_DELAY_NS = 1000;
+useconds_t SCAN_DELAY_NS = 8000;
 #define OPTION_DELAY_MS 300000
 //#define EFFICIENT_SCAN // uncommenting this will increase the SPS rate of the triggerbot
 //#define ENABLE_SHIFT // this will disable MOUSE4&3 for L&R SHIFT
 //#define DISABLE_MOUSE_SCALER
 #ifndef DISABLE_MOUSE_SCALER
     float mouse_scaler;
-    float mousescale_small = 1.f;
-    float mousescale_large = 2.f;
+    float mousescale_small = 3.f;
+    float mousescale_large = 8.f;
     uint64_t DEFAULT_MOUSE_UPDATE_NS = 16000;
     uint64_t MOUSE_UPDATE_NS = 16000;
 #endif
@@ -317,8 +317,8 @@ void targetEnemy()
         int mx = (ax-sd)+dx;
         int my = (ay-sd)+dy;
 #ifndef DISABLE_MOUSE_SCALER
-        mx = (int)(((float)mx)*mouse_scaler);
-        my = (int)(((float)my)*mouse_scaler);
+        mx = (int)roundf(((float)mx)*mouse_scaler);
+        my = (int)roundf(((float)my)*mouse_scaler);
 #endif
 
         // resize scan window
