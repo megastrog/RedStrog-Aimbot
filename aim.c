@@ -135,7 +135,7 @@ void *mouseThread(void *arg)
     int fd = open("/dev/input/mice", O_RDWR);
     if(fd == -1)
     {
-        printf("Failed to open '/dev/input/mice' mouse input is non-operable.\n");
+        printf("Failed to open '/dev/input/mice' mouse input is non-operable.\nTry to execute as superuser (sudo).\n");
         return 0;
     }
     unsigned char data[3];
