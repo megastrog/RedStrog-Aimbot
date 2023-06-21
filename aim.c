@@ -72,6 +72,7 @@ int sd=100;
 int sd2=200;
 int tsd=28;
 int tsd2=14;
+uint lon = 0;
 
 /***************************************************
    ~~ Utils
@@ -276,6 +277,9 @@ void targetEnemy()
     if(b1 == 0)
     {
         XDestroyImage(img);
+        sd = 100;
+        sd2 = 200;
+        lon = 0;
         return;
     }
 
@@ -310,6 +314,8 @@ void targetEnemy()
     // target it
     if(b1 == 1 && b2 == 1)
     {
+        lon = 1;
+
         // center on target
         const int dx = abs(ax-bx)/2;
         const int ady = abs(ay-by);
@@ -324,8 +330,13 @@ void targetEnemy()
         // resize scan window
         if(ady > 6 && ady < 100)
         {
-            sd  = ady;
+            sd  = (sd+ady)/2; // smoothed
             sd2 = sd*2;
+        }
+        else if(ady <= 6)
+        {
+            sd  = 6;
+            sd2 = 12;
         }
 
         // only move the mouse if one of the mx or my is > 0
@@ -401,12 +412,13 @@ uint isEnemy()
                 break;
             }
         }
-        if(c2 == 1){break;}
+        if(c2 == 1){lon=0;break;}
     }
 #ifdef EFFICIENT_SCAN
     if(c2 == 0)
     {
         XDestroyImage(img);
+        lon = 0;
         return 0;
     }
 #endif
@@ -425,7 +437,7 @@ uint isEnemy()
                 break;
             }
         }
-        if(c3 == 1){break;}
+        if(c3 == 1){lon=0;break;}
     }
 #ifdef EFFICIENT_SCAN
     if(c3 == 0)
@@ -449,7 +461,7 @@ uint isEnemy()
                 break;
             }
         }
-        if(c4 == 1){break;}
+        if(c4 == 1){lon=0;break;}
     }
 #ifdef EFFICIENT_SCAN
     if(c4 == 0)
@@ -461,11 +473,15 @@ uint isEnemy()
 
 #ifndef EFFICIENT_SCAN
     if(c1+c2+c3+c4 < 3)
+    {
+        lon = 0;
         return 0;
+    }
 #endif
 
     // done
     XDestroyImage(img);
+    lon = 1;
     return 1;
 }
 
@@ -494,7 +510,7 @@ void reprint()
 
     if(minimal == 0)
     {
-        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v4 by MegaStrog <<<\e[0m\n");
+        printf("\033[1m\033[0;31m>>> RedStrog Aimbot v5 by MegaStrog <<<\e[0m\n");
         rainbow_line_printf("original code by the loser below\n");
         rainbow_line_printf("James Cuckiam Fletcher (github.com/mrbid)\n\n");
         rainbow_line_printf("L-CTRL + L-ALT = Toggle BOT ON/OFF\n");
@@ -697,7 +713,7 @@ int main(int argc, char *argv[])
         }
         else if(left == 0)
         {
-            sd = 100, sd2 = 200; // reset scan
+            sd = 100, sd2 = 200, lon = 0; // reset scan
         }
 
         // inputs
@@ -881,7 +897,10 @@ int main(int argc, char *argv[])
             // crosshair
             if(crosshair == 1)
             {
-                XSetForeground(d, gc, 65280);
+                if(lon == 0)
+                    XSetForeground(d, gc, 0x00FF00);
+                else
+                    XSetForeground(d, gc, 0xFF0000);
                 if(triggerbot == 1)
                     XDrawRectangle(d, twin, gc, cx-tsd2-1, cy-tsd2-1, tsd+2, tsd+2);
                 else
